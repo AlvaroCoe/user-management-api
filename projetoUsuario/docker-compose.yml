@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # SERVIÇO MYSQL
+  # ============================================
+  mysql:
+    image: mysql:8.0.35
+    container_name: mysql-usuarios
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: usuarios_db
+      MYSQL_USER: usuario
+      MYSQL_PASSWORD: senha123
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - usuarios-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "usuario", "-psenha123"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # ============================================
+  # SERVIÇO PHPMYADMIN
+  # ============================================
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin-usuarios
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: usuario
+      PMA_PASSWORD: senha123
+      PMA_ROOT_PASSWORD: root123
+    ports:
+      - "8081:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - usuarios-network
+    volumes:
+      - phpmyadmin_data:/var/www/html
+
+# ============================================
+# VOLUMES
+# ============================================
+volumes:
+  mysql_data:
+    driver: local
+  phpmyadmin_data:
+    driver: local
+
+# ============================================
+# NETWORKS
+# ============================================
+networks:
+  usuarios-network:
+    driver: bridge
